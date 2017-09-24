@@ -224,10 +224,6 @@ to file an issue with new ideas to improve this area!
 - [How to write the perfect pull request](https://github.com/blog/1943-how-to-write-the-perfect-pull-request)
 - [The (written) unwritten guide to pull requests](https://www.atlassian.com/blog/git/written-unwritten-guide-pull-requests)
 
-### Miscellaneous
-
-- [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html)
-
 ## Attribution
 
 These guidelines are adapted from:

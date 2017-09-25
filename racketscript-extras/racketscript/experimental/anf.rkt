@@ -6,7 +6,7 @@
          syntax/parse
          (for-syntax syntax/parse))
 
-(provide normalize)
+(provide normalize stx-terminal?)
 
 (define (stx-terminal? stx)
   (or (not (stx-pair? stx))
@@ -35,10 +35,9 @@
 (define (normalize stx k)
   (syntax-parse stx
     #:literal-sets ((kernel-literals))
-    [(let-values () body ...+)
-     (normalize* (syntax-e #'(body ...))
-                 (λ (k-body)
-                   #`(let-values () #,@(k k-body))))]
+    #;[(let-values () body ...+)
+     #:with (a-body ...) (stx-map (λ (b) (normalize b identity)) (syntax->list #'(body ...)))
+     (k #`(let-values () a-body ...))]
     [(let-values ([(id ...) bb] ...) body ...+)
      (normalize*
       (syntax-e #'(bb ...))
@@ -66,8 +65,8 @@
                                 #,(normalize #'t-branch identity)
                                 #,(normalize #'f-branch identity)))))]
     [(#%plain-lambda formals body ...+)
-     (k #`(#%plain-lambda formals
-                          #,(normalize* (syntax->list #'(body ...)) identity)))]
+     #:with (a-body ...) (stx-map (λ (b) (normalize b identity)) #'(body ... ))
+     (k #`(#%plain-lambda formals a-body ...))]
     [(case-lambda . clauses)
      (error 'normalize "case-lambda unimplemented")]
     [(#%plain-app lam . args)
@@ -78,14 +77,24 @@
                     (λ (k-args)
                       (k #`(#%plain-app #,k-lam #,@k-args))))))]
     [(begin e ...+)
-     (k #`(begin
+     (normalize #`(let-values () e ...) k)
+     #;(normalize* (syntax->list #'(e ...))
+                 (λ (k-begin)
+                   (with-syntax ([(be ... bl) k-begin])
+                     (displayln #`(let-values () be ... #,(k #'bl)))
+                     #`(let-values () be ... #,(k #'bl)))))
+     #;(k #`(begin
+            #,@(stx-map (λ (t) (normalize t identity)) #'(e ...))))
+     (k #`(let-values ()
             #,@(stx-map (λ (t) (normalize t identity)) #'(e ...))))]
     [(begin0 e0 e ...)
-     #`(begin0
-           #,@(stx-map (λ (t) (normalize t identity)) #'(e0 e ...)))]
+     (k #`(begin0
+              #,@(stx-map (λ (t) (normalize t identity)) #'(e0 e ...))))]
     [(set! id expr)
-     (normalize-name #'expr (λ (k-expr)
-                              #`(set! id #,k-expr)))]
+     (normalize #'expr (λ (k-expr)
+                         (k #`(set! id #,k-expr))))
+     #;(normalize-name #'expr (λ (k-expr)
+                              (k #`(set! id #,k-expr))))]
     [(quote d) (k #'(quote d))]
     [(#%top . v) (k #'(#%top . v))]
     [(#%expression expr) (normalize #'expr (λ (aexpr)
@@ -93,8 +102,7 @@
     [v #:when (stx-terminal? #'v) (k #'v)]
     [v (error 'anf "Unexpected syntax term: ~a" #'v)]))
 
-#|
-(define prog
+#;(define prog
   #'(#%plain-lambda
      ()
      (let-values (((a1) '1) ((b2) '2) ((d3) '0))
@@ -105,11 +113,15 @@
         (let-values (((d4) '3))
           (set! a1 '4)
           (#%plain-app + (#%plain-app + (#%top . c) a1) d4 (begin (set! b2 '5) b2)))))))
-(require racket/pretty)
-(pretty-print (syntax->datum prog))
-(pretty-print
- (syntax->datum (normalize prog identity)))
-|#
+
+;; (define prog
+;;   #'(#%plain-lambda (a) (begin 1 (set! a (begin 1 2)) 3)))
+
+;; (require racket/pretty)
+;; (pretty-print (syntax->datum prog))
+;; (pretty-print
+;;  (syntax->datum (normalize prog identity)))
+
 #;(module+ test
   (require racket/pretty
            rackunit)

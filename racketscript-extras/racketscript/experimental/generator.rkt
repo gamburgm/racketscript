@@ -41,19 +41,20 @@
              #`(#%plain-lambda formals new-body))))]
       [(let-values ([(id ...) bb] ...) body ...+)
        #:with (lifted-body ...) (stx-map lift #'(body ...))
+       #:with (lifted-bb ...) (stx-map lift #'(bb ...))
        #:with ((fresh-id ...) ...) (map (λ (ids)
                                           (generate-temporaries (syntax-e ids)))
                                         (syntax-e #'((id ...) ...)))
        #:with (set!-bindings ...) (stx-map (syntax-parser
-                                             [((id) bb) #'(set! id bb)]
-                                             [((id ...) bb)
-                                              #:with (fresh-id ...) (generate-temporaries (syntax-e #'(id ...)))
-                                              #'(let-values ([(fresh-id ...) bb])
-                                                  (set! id fresh-id) ...)])
-                                           #'([(id ...) bb] ...))
-       
+                                             [((id) bb) (lift #'(set! id bb))]
+                                             #;[((id ...) bb)
+                                                #:with (fresh-id ...) (generate-temporaries (syntax-e #'(id ...)))
+                                                #'(let-values ([(fresh-id ...) bb])
+                                                    (set! id fresh-id) ...)])
+                                           #'([(id ...) lifted-bb] ...))
+
        (save-bindings! #'(id ... ...))
-       #`(begin set!-bindings ... lifted-body ...)]
+       #`(let-values () set!-bindings ... lifted-body ...)]
       [(letrec-values ([(id ...) bb] ...) body ...+)
        (error 'normalize "letrec unimplemented")]
       [(with-continuation-mark key val result)
@@ -69,15 +70,24 @@
        #:with lifted-args (stx-map lift #'args)
        #`(#%plain-app lifted-lam . lifted-args)]
       [(begin e ...+)
-       #:with (lifted-e ...) (stx-map lift #'(e ...))
-       #`(begin lifted-e ...)]
-      [(begin0 e0 e ...)
+       ;#:with (lifted-e ...) (stx-map lift #'(e ...))
+       #;#`(begin lifted-e ...)
+       (error 'lift-bindings "begin should be expanted to let-values")]
+      #;[(begin0 e0 e ...)
        #:with lifted-e0 (lift #'e0)
        #:with (lifted-e ...) (stx-map lift #'(e ...))
        #`(begin0 lifted-e0 lifted-e ...)]
       [(set! id expr)
        #:with lifted-expr (lift #'expr)
-       #`(set! id lifted-expr)]
+       #:with (temp) (generate-temporaries (list #'id))
+       #`(set! id lifted-expr)
+       #;(cond
+           [(stx-terminal? #'lifted-expr) #`(set! id lifted-expr)]
+           [else
+            (save-bindings! #'(temp))
+            #`(let-values ()
+                (set! temp lifted-expr)
+                (set! id temp))])]
       [(#%expression expr)
        #:with lifted-expr (lift #'expr)
        #`(#%expression lifted-expr)]
@@ -114,11 +124,15 @@
                                                  (set! a 4)
                                                  (+ (+ c a) d (begin (set! b 5) b)))))))))
 
+    (define prog2 (normalize prog identity))
     (pretty-print (syntax->datum prog))
+    (pretty-print (syntax->datum prog2))
     #;(pretty-print (syntax->datum  (normalize prog identity)))
-    #;(pretty-print (syntax->datum  (lift-bindings prog)))
-    #;(pretty-print (syntax->datum (lift-bindings (normalize prog identity))))
-    (pretty-print (syntax->datum (normalize (lift-bindings prog) identity))))
+    (pretty-print (syntax->datum  (lift-bindings (lift-bindings prog2))))
+    #;(pretty-print (syntax->datum (expand (lift-bindings (lift-bindings (normalize prog identity))))))
+    #;(pretty-print (syntax->datum prog2))
+    #;(pretty-print (syntax->datum (lift-bindings prog2)))
+    #;(pretty-print (syntax->datum (normalize (lift-bindings prog) identity))))
 
   #;(test-case "Generator of a sequence of numbers"
     (define prog #'(define gen-range (function* (n)

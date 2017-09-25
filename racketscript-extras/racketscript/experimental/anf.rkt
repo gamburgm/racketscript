@@ -91,9 +91,9 @@
      (k #`(begin0
               #,@(stx-map (λ (t) (normalize t identity)) #'(e0 e ...))))]
     [(set! id expr)
-     (normalize #'expr (λ (k-expr)
+     #;(normalize #'expr (λ (k-expr)
                          (k #`(set! id #,k-expr))))
-     #;(normalize-name #'expr (λ (k-expr)
+     (normalize-name #'expr (λ (k-expr)
                               (k #`(set! id #,k-expr))))]
     [(quote d) (k #'(quote d))]
     [(#%top . v) (k #'(#%top . v))]
@@ -114,13 +114,13 @@
           (set! a1 '4)
           (#%plain-app + (#%plain-app + (#%top . c) a1) d4 (begin (set! b2 '5) b2)))))))
 
-;; (define prog
-;;   #'(#%plain-lambda (a) (begin 1 (set! a (begin 1 2)) 3)))
+(define prog
+  #'(#%plain-lambda (a) (begin 1 (set! a (begin 1 2)) 3)))
 
-;; (require racket/pretty)
-;; (pretty-print (syntax->datum prog))
-;; (pretty-print
-;;  (syntax->datum (normalize prog identity)))
+(require racket/pretty)
+(pretty-print (syntax->datum prog))
+(pretty-print
+ (syntax->datum (normalize prog identity)))
 
 #;(module+ test
   (require racket/pretty

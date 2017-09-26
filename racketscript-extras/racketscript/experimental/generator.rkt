@@ -79,9 +79,9 @@
        #`(begin0 lifted-e0 lifted-e ...)]
       [(set! id expr)
        #:with lifted-expr (lift #'expr)
-       #:with (temp) (generate-temporaries (list #'id))
-       #;#`(set! id lifted-expr)
-       (cond
+       ;#:with (temp) (generate-temporaries (list #'id))
+       #`(set! id lifted-expr)
+       #;(cond
            [(stx-terminal? #'lifted-expr) #`(set! id lifted-expr)]
            [else
             (save-bindings! #'(temp))
@@ -96,32 +96,58 @@
   (parameterize ([lexical-bindings (make-free-id-table)])
     (lift stx)))
 
-#;(define (lift-empty-lets stx)
+(define (lift-empty-lets stx)
+  (define (lift* stx*)
+    (apply append
+           (reverse
+            (for/fold ([results '()])
+                      ([stx* (syntax->list stx*)])
+              (syntax-parse stx*
+                #:literal-sets ((kernel-literals))
+                [(let-values () body ...)
+                 #:with (lifted-body ...) (lift* #'(body ...))
+                 (cons (syntax->list #'(lifted-body ...)) results)]
+                [(if (let-values () pred-body ...) t-branch f-branch)
+                 #:with (lifted-pred-body ... lifted-pred-val) (lift* #'(pred-body ...))
+                 #:with lifted-if-expr (lift #'(if lifted-pred-val t-branch f-branch))
+                 (cons (syntax->list #'(lifted-pred-body ... lifted-if-expr)) results)]
+                [(set! id (let-values () body ...))
+                 #:with (lifted-body ... val) (lift* #'(body ...))
+                 (cons (syntax->list #'(lifted-body ... (set! id val)))
+                       results)]
+                [_
+                 (define lifted-stx (lift stx*))
+                 (cons (if (syntax? lifted-stx)
+                           (list lifted-stx)
+                           lifted-stx)
+                       results)])))))
+
   (define (lift stx)
     (syntax-parse stx
       #:literal-sets ((kernel-literals))
       [(#%plain-lambda formals body ...+)
-       #:with (lifted-body ...) (stx-map lift #'(body ...))
-       (#%plain-lambda formals lifted-body ...)]
-      [(let-values () body ...) 
-       #:with (lifted-body ...) (stx-map lift #'(body ...))
-       #'(lifted-body ...)]
+       #:with (lifted-body ...) (lift* #'(body ...))
+       #'(#%plain-lambda formals lifted-body ...)]
       [(let-values clauses body ...+)
-       #:with (lifted-body ...) (stx-map lift #'(body ...))
+       #:with (lifted-body ...) (lift* #'(body ...))
        #'(let-values clauses lifted-body ...)]
       [(letrec-values ([(id ...) bb] ...) body ...+)
        (error 'normalize "letrec unimplemented")]
       [(with-continuation-mark key val result)
        (error 'normalize "w-c-m unimplemented")]
       [(if pred t-branch f-branch)
-       ]
+       #:with lifted-pred (lift #'pred)
+       #:with lifted-t-branch (lift #'t-branch)
+       #:with lifted-f-branch (lift #'f-branch)
+       #'(if lifted-pred lifted-t-branch lifted-f-branch)]
+      [(#%expression expr)
+       #:with lifted-expr (lift #'expr)
+       #'(#%expression lifted-expr)]
       [(case-lambda . clauses)
        (error 'normalize "case-lambda unimplemented")]
-      [(#%plain-app lam . args)]
-      [(begin e ...+)]
-      [(set! id expr)]
-      [(#%expression expr)]
-      [v #'v])))
+      [v #;{Anf no lifting required} #'v]))
+
+  (lift stx))
 
 #;(define-syntax-parser function*
   [(_ (f0 ...) body ...) #'#f]
@@ -154,8 +180,9 @@
     (define prog2 (normalize prog identity))
     (pretty-print (syntax->datum prog))
     ;; (pretty-print (syntax->datum prog2))
+    (pretty-print (syntax->datum   (lift-bindings prog2)))
     #;(pretty-print (syntax->datum  (normalize prog identity)))
-    (pretty-print (syntax->datum  (lift-bindings prog2)))
+    (pretty-print (syntax->datum  (lift-empty-lets (lift-bindings prog2))))
     #;(pretty-print (syntax->datum (expand (lift-bindings (lift-bindings (normalize prog identity))))))
     #;(pretty-print (syntax->datum prog2))
     #;(pretty-print (syntax->datum (lift-bindings prog2)))

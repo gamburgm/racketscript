@@ -70,24 +70,10 @@
        #:with lifted-args (stx-map lift #'args)
        #`(#%plain-app lifted-lam . lifted-args)]
       [(begin e ...+)
-       ;#:with (lifted-e ...) (stx-map lift #'(e ...))
-       #;#`(begin lifted-e ...)
        (error 'lift-bindings "begin should be expanted to let-values")]
-      #;[(begin0 e0 e ...)
-       #:with lifted-e0 (lift #'e0)
-       #:with (lifted-e ...) (stx-map lift #'(e ...))
-       #`(begin0 lifted-e0 lifted-e ...)]
       [(set! id expr)
        #:with lifted-expr (lift #'expr)
-       ;#:with (temp) (generate-temporaries (list #'id))
-       #`(set! id lifted-expr)
-       #;(cond
-           [(stx-terminal? #'lifted-expr) #`(set! id lifted-expr)]
-           [else
-            (save-bindings! #'(temp))
-            #`(let-values ()
-                (set! temp lifted-expr)
-                (set! id temp))])]
+       #`(set! id lifted-expr)]
       [(#%expression expr)
        #:with lifted-expr (lift #'expr)
        #`(#%expression lifted-expr)]
@@ -98,29 +84,29 @@
 
 (define (lift-empty-lets stx)
   (define (lift* stx*)
-    (apply append
-           (reverse
-            (for/fold ([results '()])
-                      ([stx* (syntax->list stx*)])
-              (syntax-parse stx*
-                #:literal-sets ((kernel-literals))
-                [(let-values () body ...)
-                 #:with (lifted-body ...) (lift* #'(body ...))
-                 (cons (syntax->list #'(lifted-body ...)) results)]
-                [(if (let-values () pred-body ...) t-branch f-branch)
-                 #:with (lifted-pred-body ... lifted-pred-val) (lift* #'(pred-body ...))
-                 #:with lifted-if-expr (lift #'(if lifted-pred-val t-branch f-branch))
-                 (cons (syntax->list #'(lifted-pred-body ... lifted-if-expr)) results)]
-                [(set! id (let-values () body ...))
-                 #:with (lifted-body ... val) (lift* #'(body ...))
-                 (cons (syntax->list #'(lifted-body ... (set! id val)))
-                       results)]
-                [_
-                 (define lifted-stx (lift stx*))
-                 (cons (if (syntax? lifted-stx)
-                           (list lifted-stx)
-                           lifted-stx)
-                       results)])))))
+    (define new-stx-rev-ordered
+      (for/fold ([results '()])
+                ([stx* (syntax->list stx*)])
+        (syntax-parse stx*
+          #:literal-sets ((kernel-literals))
+          [(let-values () body ...)
+           #:with (lifted-body ...) (lift* #'(body ...))
+           (cons (syntax->list #'(lifted-body ...)) results)]
+          [(if (let-values () pred-body ...) t-branch f-branch)
+           #:with (lifted-pred-body ... lifted-pred-val) (lift* #'(pred-body ...))
+           #:with lifted-if-expr (lift #'(if lifted-pred-val t-branch f-branch))
+           (cons (syntax->list #'(lifted-pred-body ... lifted-if-expr)) results)]
+          [(set! id (let-values () body ...))
+           #:with (lifted-body ... val) (lift* #'(body ...))
+           (cons (syntax->list #'(lifted-body ... (set! id val)))
+                 results)]
+          [_
+           (define lifted-stx (lift stx*))
+           (cons (if (syntax? lifted-stx)
+                     (list lifted-stx)
+                     lifted-stx)
+                 results)])))
+    (apply append (reverse new-stx-rev-ordered)))
 
   (define (lift stx)
     (syntax-parse stx
@@ -149,11 +135,34 @@
 
   (lift stx))
 
+(struct BasicBlock (id
+                    prev
+                    next
+                    type
+                    nodes
+                    
+
+;; BasicBlock is (list BasicBlockId
+;;                     BasicBlockType
+;;                     BasicBlock
+;;                     (Box (Listof (Listof Syntax)))
+;;                     BasicBlockId
+;;                     BasicBlockId)
+;; FlowGraph is (list BasicBlockId (HashTable BasicBlockId BasicBlock))
+(define (syntax->basic-blocks stx)
+  (define root  #f)
+  (define graph (make-hash))
+
+  (define current-block (make-parameter #f))
+
+  (syntax-parser stx
+  #f
+  )
+
 #;(define-syntax-parser function*
   [(_ (f0 ...) body ...) #'#f]
   [(_ (f0 ... . fv) body ...) #'#f]
   [(_ fv) #'#f])
-
 
 (module+ test
   (require rackunit racket/pretty)

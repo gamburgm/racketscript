@@ -125,6 +125,9 @@
        '#%boot
        '#%foreign
        '#%place
+       '#%main
+       '#%core
+       '#%read
        (build-path racketscript-runtime-dir "lib.rkt")))
 
 ;;; ---------------------------------------------------------------------------

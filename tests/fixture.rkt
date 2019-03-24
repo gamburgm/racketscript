@@ -27,6 +27,10 @@
 (define coverage-mode? (let ([mod (getenv "COVERAGE_MODE")])
                          (and mod (equal? (string->number mod) 1))))
 
+(define *msg-indicate-passed*  "✔")
+(define *msg-indicate-failed*  "✘")
+(define *msg-indicate-crashed* "[𝚌𝚛𝚊𝚜𝚑]")
+
 (define (displayln* v)
   (if coverage-mode?
       (displayln "")
@@ -130,7 +134,7 @@
        ;;   We output here because if we return a non-false value
        ;;   from here, it doens't show up as a test failure. We
        ;;   ideally would like to handle this in check-around.
-       (display "[𝚌𝚛𝚊𝚜𝚑]") result]
+       (display *msg-indicate-crashed*) result]
       [else (match-define (list (list r-p-out r-p-err)
                                 (list j-p-out j-p-err))
               result)
@@ -195,12 +199,12 @@
    (let ([original-check-around (current-check-around)])
      (λ (test-thunk)
        (with-handlers ([exn:test:check? (λ (e)
-                                          (displayln* "✘")
+                                          (displayln* *msg-indicate-failed*)
                                           ((current-check-handler) e)
                                           #f)])
          (case (test-thunk)
-           [(#t) (displayln* "✔") #t]
-           [(#f) (displayln* "✘") #f])))))
+           [(#f) (displayln* *msg-indicate-failed*) #f]
+           [else (displayln* *msg-indicate-passed*) #t])))))
 
   (for ([test testcases]
         [i (in-naturals 1)])

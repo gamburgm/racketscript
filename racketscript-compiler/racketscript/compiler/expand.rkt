@@ -220,6 +220,7 @@
      (define (rename-module mpath)
        ;; Rename few modules for simpler compilation
        (cond
+         [(equal? mpath '#%runtime) (list #f '#%kernel)]
          [(symbol? mpath) (list #f mpath)]
          #;[(collects-module? mpath) (list #t '#%kernel)]
          [else (list #f mpath)]))

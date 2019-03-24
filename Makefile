@@ -28,9 +28,9 @@ build:
 
 setup:
 	raco pkg install --auto -t dir racketscript-compiler/ || \
-	    raco pkg update --link racketscript-compiler/
+		raco pkg update --link racketscript-compiler/
 	raco pkg install --auto -t dir racketscript-extras/ || \
-		    raco pkg update --link racketscript-extras/
+		raco pkg update --link racketscript-extras/
 
 setup-extra:
 	npm install -g traceur js-beautify eslint jshint gulp
@@ -51,7 +51,7 @@ coverage:
 	@echo "    RACKETSCRIPT COVERAGE    "
 	@echo "++++++++++++++++++++++++"
 	COVERAGE_MODE=1 raco cover -d ./coverage/all -b racketscript-compiler \
-	    tests/fixture.rkt
+		tests/fixture.rkt
 
 ## JavaScript
 

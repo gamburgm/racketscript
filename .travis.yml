@@ -9,13 +9,13 @@ sudo: false
 env:
   global:
     - RACKET_DIR=~/racket
-    - RACKET_RUN_COVERAGE=6.10
+    - RACKET_RUN_COVERAGE=7.0
   matrix:
     - RACKET_VERSION=HEAD
     - RACKET_VERSION=RELEASE
+    - RACKET_VERSION=7.0
     - RACKET_VERSION=6.10
     - RACKET_VERSION=6.7
-    - RACKET_VERSION=6.4
 
 matrix:
   allow_failures:

@@ -12,9 +12,9 @@ class WeakBox extends PrintablePrimitive {
         this.value = new WeakRef(WeakUtils.canBeWeak(v) ? v : WeakUtils.makePrimitiveKey(v));
     }
 
-    get(maybeV) {
+    get(maybeVal) {
         const val = this.value.deref();
-        if (val === undefined) return maybeV || false;
+        if (val === undefined) return maybeVal;
         if (val.primitiveLabel === WeakUtils.primitiveLabel) return val.key;
         return val;
     }

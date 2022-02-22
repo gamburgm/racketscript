@@ -1002,6 +1002,16 @@
 
 (define+provide weak-box? #js.Core.WeakBox.check)
 
+;; Ephemeron
+
+(define+provide make-ephemeron #js.Core.Ephemeron.make)
+
+;; making the intentional decision to not handle the `retain-v` parameter.
+;; check out the racket documentation for `ephemeron-value` for details.
+(define+provide (ephemeron-value e [gced-v #f]) (#js.e.get gced-v))
+
+(define_provide ephemeron? #js.Core.Ephemeron.check)
+
 ;; --------------------------------------------------------------------------
 ;; Properties
 

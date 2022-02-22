@@ -1,22 +1,21 @@
 import { PrintablePrimitive } from './printable_primitive.js';
 import { hashForEqual } from './hashing.js';
 import * as UString from './unicode_string.js';
+import * as WeakUtils from './weak_utils.js';
 
 const WEAK_BOX_REPR = '#<weak-box>';
 const WEAK_BOX_USTRING_REPR = UString.makeInternedImmutable(WEAK_BOX_REPR);
 
-const primitiveLabel = Symbol('primitive');
-
 class WeakBox extends PrintablePrimitive {
     constructor(v) {
         super();
-        this.value = new WeakRef(WeakBox._canBeWeak(v) ? v : WeakBox._makePrimitiveKey(v));
+        this.value = new WeakRef(WeakUtils.canBeWeak(v) ? v : WeakUtils.makePrimitiveKey(v));
     }
 
     get(maybeV) {
         const val = this.value.deref();
-        // TODO is there a conventional way to check for a condition like this?
         if (val === undefined) return maybeV || false;
+        if (val.primitiveLabel === WeakUtils.primitiveLabel) return val.key;
         return val;
     }
 
@@ -42,14 +41,6 @@ class WeakBox extends PrintablePrimitive {
 
     writeUString(out) {
         this.displayUString(out);
-    }
-
-    static _canBeWeak(v) {
-        return (v instanceof Object);
-    }
-
-    static _makePrimitiveKey(v) {
-        return { primitiveLabel, key: v };
     }
 }
 

@@ -991,11 +991,16 @@
 
 (define+provide box-immutable #js.Core.Box.make)
 
-(define+provide make-weak-box #js.Core.Box.make)
-(define+provide (weak-box-value v) (#js.v.get))
-
 (define+provide (set-box*! b v) (#js.b.set v))
 (define+provide (unbox* v) (#js.v.get))
+
+;; WeakBox
+
+(define+provide make-weak-box #js.Core.WeakBox.make)
+
+(define+provide (weak-box-value b [gced-v #f]) (#js.b.get gced-v))
+
+(define+provide weak-box? #js.Core.WeakBox.check)
 
 ;; --------------------------------------------------------------------------
 ;; Properties

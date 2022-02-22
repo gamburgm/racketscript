@@ -21,6 +21,7 @@ import * as MPair from './core/mpair.js';
 import * as Correlated from './core/correlated.js';
 import * as Linklet from './core/linklet.js';
 import * as Path from './core/path.js';
+import * as WeakBox from './core/weak_box.js';
 
 export {
     Bytes,
@@ -42,7 +43,8 @@ export {
     MPair,
     Correlated,
     Linklet,
-    Path
+    Path,
+    WeakBox
 };
 
 export { argumentsToArray, argumentsSlice } from './core/lib.js';

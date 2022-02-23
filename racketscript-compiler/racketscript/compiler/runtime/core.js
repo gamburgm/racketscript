@@ -22,6 +22,7 @@ import * as Correlated from './core/correlated.js';
 import * as Linklet from './core/linklet.js';
 import * as Path from './core/path.js';
 import * as WeakBox from './core/weak_box.js';
+import * as Ephemeron from './core/ephemeron.js';
 
 export {
     Bytes,
@@ -44,7 +45,8 @@ export {
     Correlated,
     Linklet,
     Path,
-    WeakBox
+    WeakBox,
+    Ephemeron
 };
 
 export { argumentsToArray, argumentsSlice } from './core/lib.js';

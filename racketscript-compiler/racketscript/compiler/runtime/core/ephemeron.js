@@ -1,10 +1,10 @@
 import { PrintablePrimitive } from './printable_primitive.js';
 import { hashForEqual } from './hashing.js';
-// import * as UString from './unicode_string.js';
+import * as UString from './unicode_string.js';
 import * as WeakUtils from './weak_utils.js';
 
 const EPHEMERON_REPR = '#<ephemeron>';
-const EPHEMERON_USTRING_REPR = UString.makeInternedImmutable(WEAK_BOX_REPR);
+const EPHEMERON_USTRING_REPR = UString.makeInternedImmutable(EPHEMERON_REPR);
 
 class Ephemeron extends PrintablePrimitive {
     // FIXME do I need this roundabout technique?
@@ -17,8 +17,9 @@ class Ephemeron extends PrintablePrimitive {
 
     constructor(key, v) {
         super();
-        this._key = new WeakRef(WeakUtils.canBeWeak(v) ? v : WeakUtils.makePrimitiveKey(v));
+        this._key = new WeakRef(WeakUtils.canBeWeak(key) ? key : WeakUtils.makePrimitiveKey(key));
         this._val = v;
+        Ephemeron._registry.register(this._key, () => { this._killValue(); });
     }
 
     get(maybeVal) {
@@ -31,6 +32,26 @@ class Ephemeron extends PrintablePrimitive {
 
     hashForEqual() {
         return hashForEqual(this);
+    }
+
+    displayNativeString(out) {
+        out.consume(EPHEMERON_REPR);
+    }
+
+    displayUString(out) {
+        out.consume(EPHEMERON_USTRING_REPR);
+    }
+
+    writeNativeString(out) {
+        this.displayNativeString(out);
+    }
+
+    writeUString(out) {
+        this.displayUString(out);
+    }
+
+    _killValue() {
+        this._val = undefined;
     }
 }
 

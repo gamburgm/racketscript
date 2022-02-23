@@ -1010,7 +1010,7 @@
 ;; check out the racket documentation for `ephemeron-value` for details.
 (define+provide (ephemeron-value e [gced-v #f]) (#js.e.get gced-v))
 
-(define_provide ephemeron? #js.Core.Ephemeron.check)
+(define+provide ephemeron? #js.Core.Ephemeron.check)
 
 ;; --------------------------------------------------------------------------
 ;; Properties
